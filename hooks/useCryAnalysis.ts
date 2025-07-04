@@ -1,4 +1,7 @@
 import { useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
+import { useLanguage } from './useLanguage';
 
 export interface CryAnalysisResult {
   id: string;
@@ -17,6 +20,69 @@ export interface CryAnalysisResult {
 export function useCryAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastResult, setLastResult] = useState<CryAnalysisResult | null>(null);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingUri, setRecordingUri] = useState<string | null>(null);
+  const { currentLanguage } = useLanguage();
+
+  // Function to start recording
+  const startRecording = async () => {
+    try {
+      // Request permissions
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        console.error('Audio recording permission not granted');
+        return false;
+      }
+
+      // Set audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      // Create and start recording
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await newRecording.startAsync();
+      setRecording(newRecording);
+      return true;
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      return false;
+    }
+  };
+
+  // Function to stop recording and analyze
+  const stopRecordingAndAnalyze = async () => {
+    if (!recording) {
+      console.error('No active recording found');
+      return null;
+    }
+
+    try {
+      // Stop recording
+      await recording.stopAndUnloadAsync();
+      
+      // Get recording URI
+      const uri = recording.getURI();
+      setRecordingUri(uri);
+      setRecording(null);
+      
+      if (uri) {
+        // Start analysis
+        return await analyzeAudio();
+      } else {
+        console.error('Recording URI is null');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      setRecording(null);
+      return null;
+    }
+  };
 
   const analyzeAudio = useCallback(async (): Promise<CryAnalysisResult> => {
     setIsAnalyzing(true);
@@ -39,12 +105,12 @@ export function useCryAnalysis() {
       {
         emotions: { uncomfortable: 60, needsAttention: 25, hungry: 10, tired: 5 },
         confidence: 0.79,
-        recommendation: 'Your baby seems uncomfortable. Check diaper, clothing, or room temperature.',
+        recommendation: "Your baby seems uncomfortable. Check diaper, clothing, or room temperature.",
       },
       {
         emotions: { needsAttention: 70, hungry: 15, tired: 10, uncomfortable: 5 },
         confidence: 0.85,
-        recommendation: 'Your baby wants attention and comfort. Try gentle interaction or cuddling.',
+        recommendation: "Your baby wants attention and comfort. Try gentle interaction or cuddling.",
       },
     ];
 
@@ -59,6 +125,16 @@ export function useCryAnalysis() {
       recommendation: randomResult.recommendation,
     };
 
+    // Save to history
+    try {
+      const historyJson = await AsyncStorage.getItem('cryHistory');
+      const history = historyJson ? JSON.parse(historyJson) : [];
+      history.unshift(result);
+      await AsyncStorage.setItem('cryHistory', JSON.stringify(history.slice(0, 100)));
+    } catch (e) {
+      console.error('Failed to save to history', e);
+    }
+
     setLastResult(result);
     setIsAnalyzing(false);
     
@@ -67,7 +143,12 @@ export function useCryAnalysis() {
 
   return {
     analyzeAudio,
+    analyzeAudioFile: analyzeAudio, // Alias for compatibility
     isAnalyzing,
     lastResult,
+    modelLoaded: true, // Mock for UI
+    startRecording,
+    stopRecordingAndAnalyze,
+    recordingUri,
   };
 }

@@ -1,0 +1,4 @@
+# This is a binary file placeholder
+# In a real implementation, this would contain the actual model weights in binary format
+# generated from a trained TensorFlow model
+# The size of this file would typically be around 1-10 MB for a simple audio classifier

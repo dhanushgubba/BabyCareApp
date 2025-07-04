@@ -27,9 +27,17 @@ const { width, height } = Dimensions.get('window');
 
 export default function AnalyzeScreen() {
   const { t, currentLanguage } = useLanguage();
-  const { analyzeAudio, isAnalyzing, lastResult } = useCryAnalysis();
+  const { 
+    analyzeAudio, 
+    isAnalyzing, 
+    lastResult, 
+    modelLoaded,
+    startRecording,
+    stopRecordingAndAnalyze
+  } = useCryAnalysis();
   const [isRecording, setIsRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
   
   const pulseScale = useSharedValue(1);
   const recordingOpacity = useSharedValue(0);
@@ -49,14 +57,22 @@ export default function AnalyzeScreen() {
   }, [isRecording]);
 
   const handleStartRecording = async () => {
-    setIsRecording(true);
-    setShowResults(false);
+    const success = await startRecording();
+    if (success) {
+      setIsRecording(true);
+      setShowResults(false);
+    } else {
+      // Show error or request permissions again
+      console.error('Failed to start recording');
+    }
   };
 
   const handleStopRecording = async () => {
     setIsRecording(false);
-    await analyzeAudio();
-    setShowResults(true);
+    const result = await stopRecordingAndAnalyze();
+    if (result) {
+      setShowResults(true);
+    }
   };
 
   const pulseAnimatedStyle = useAnimatedStyle(() => ({
