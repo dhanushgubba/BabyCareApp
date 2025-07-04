@@ -1,12 +1,12 @@
 # AI-Powered Baby Cry Emotion Detector
 
 ## Overview
-This mobile application analyzes baby cries to determine their emotional state and probable needs. Using TensorFlow Lite for on-device machine learning, it can work offline while supporting multiple regional Indian languages for better accessibility.
+This mobile application analyzes baby cries to determine their emotional state and probable needs. Using both on-device and API-based machine learning, it can work in real-time while supporting multiple regional Indian languages for better accessibility.
 
 ## Features
 - **AI-Powered Cry Analysis**: Identifies why your baby is crying (hungry, tired, uncomfortable, needs attention)
 - **Real-Time Feedback**: Provides immediate insights with confidence scores
-- **Offline Operation**: Works without internet for reliable use anywhere
+- **Offline & Online Operation**: Works on-device or with the advanced ML API
 - **Multilingual Support**: Available in English, Hindi, Tamil, Telugu, and Bengali
 - **History Tracking**: Records and displays patterns over time
 - **Smart Insights**: Provides pattern recognition and personalized recommendations
@@ -28,39 +28,52 @@ This mobile application analyzes baby cries to determine their emotional state a
 
 ### Machine Learning
 - **TensorFlow** for model training and optimization
-- **TensorFlow Lite** for on-device inference
-- Trained on labeled cry audio samples from diverse demographics
+- **Flask API** for advanced cry analysis with Scikit-learn random forest model
 
-## Getting Started
+## Running the Application
 
 ### Prerequisites
-- Node.js 14+ and npm
-- React Native development environment
-- MongoDB (for backend development)
+- Node.js and npm
+- Python 3.8+ (for the cry analysis API)
+- Expo CLI (`npm install -g expo-cli`)
 
-### Installation
-1. Clone the repository
-   ```
-   git clone https://github.com/yourusername/baby-cry-detector.git
-   ```
+### Setup and Running
 
-2. Install dependencies
-   ```
-   cd baby-cry-detector
+1. **Install Dependencies**
+   ```bash
    npm install
+   cd cry-ai-api
+   pip install -r requirements.txt
+   cd ..
    ```
 
-3. Start the development server
-   ```
-   npm run dev
+2. **Start the Development Environment**
+   ```bash
+   # Run everything (React Native app, Node.js server, and Flask API)
+   npm run dev:full
+   
+   # Or run just the React Native app
+   npm run dev:win
+   
+   # Run just the Flask AI API
+   npm run cry-api
    ```
 
-4. (Optional) Start the backend server
+3. **For Windows Users**
+   You can also use the batch file in the cry-ai-api folder:
    ```
-   cd server
-   npm install
-   npm start
+   cd cry-ai-api
+   start_server.bat
    ```
+
+### API Endpoints
+
+- `/predict-type` - POST endpoint that accepts an audio file and returns the predicted cry type
+- `/health` - GET endpoint to check if the API is running
+
+### Mobile App Connection
+
+The mobile app connects to the Flask API on `http://10.0.2.2:5000` for Android emulators. For physical devices, update the API_URL in `hooks/useCryAnalysis.ts` to your computer's IP address.
 
 ## Usage
 1. Open the app and grant microphone permissions

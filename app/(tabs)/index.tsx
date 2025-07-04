@@ -19,6 +19,7 @@ import Animated, {
 import { Mic, MicOff, Loader } from 'lucide-react-native';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useCryAnalysis } from '@/hooks/useCryAnalysis';
+import { useWebCompatibility } from '@/hooks/useWebCompatibility';
 import { AudioRecorder } from '@/components/AudioRecorder';
 import { EmotionResults } from '@/components/EmotionResults';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -27,6 +28,10 @@ const { width, height } = Dimensions.get('window');
 
 export default function AnalyzeScreen() {
   const { t, currentLanguage } = useLanguage();
+  // Check if we're running on web platform
+  const isWebPlatform = Platform.OS === 'web';
+  
+  // Use the web-compatible version of the hook that provides fallbacks
   const { 
     analyzeAudio, 
     isAnalyzing, 
@@ -34,7 +39,7 @@ export default function AnalyzeScreen() {
     modelLoaded,
     startRecording,
     stopRecordingAndAnalyze
-  } = useCryAnalysis();
+  } = isWebPlatform ? useWebCompatibility() : useCryAnalysis();
   const [isRecording, setIsRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
@@ -89,6 +94,16 @@ export default function AnalyzeScreen() {
         colors={['#F8FAFC', '#EEF2FF']}
         style={styles.background}
       >
+        {isWebPlatform && (
+          <View style={styles.webBanner}>
+            <Text style={styles.webBannerText}>
+              Web Demo Mode - Limited Functionality
+            </Text>
+            <Text style={styles.webBannerSubtext}>
+              For full functionality, please use the mobile app
+            </Text>
+          </View>
+        )}
         <View style={styles.header}>
           <Text style={styles.title}>{t.analyzeTitle}</Text>
           <Text style={styles.subtitle}>{t.analyzeSubtitle}</Text>
@@ -202,14 +217,9 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    // Replace deprecated shadow* props with boxShadow
+    boxShadow: '0px 8px 12px rgba(0, 0, 0, 0.15)',
+    elevation: 8, // Keep elevation for Android
   },
   instructions: {
     fontSize: 16,
@@ -235,5 +245,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#64748B',
     lineHeight: 20,
+  },
+  webBanner: {
+    backgroundColor: '#FFFBEB',
+    padding: 8,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FEF3C7',
+  },
+  webBannerText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#D97706',
+  },
+  webBannerSubtext: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#92400E',
+    marginTop: 2,
   },
 });

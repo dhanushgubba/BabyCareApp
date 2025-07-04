@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -13,97 +13,77 @@ interface AudioRecorderProps {
 }
 
 const { width } = Dimensions.get('window');
+const NUM_WAVES = 9; // Total number of wave bars
 
 export function AudioRecorder({ isRecording }: AudioRecorderProps) {
-  const waveHeight1 = useSharedValue(20);
-  const waveHeight2 = useSharedValue(30);
-  const waveHeight3 = useSharedValue(25);
-  const waveHeight4 = useSharedValue(35);
-  const waveHeight5 = useSharedValue(15);
+  // Create an array of shared values for the wave heights
+  const waveHeights = Array(NUM_WAVES)
+    .fill(0)
+    .map((_, i) => {
+      // Stagger the initial heights for a nicer visualization
+      const baseHeight = 15 + (i % 3) * 10;
+      return useSharedValue(baseHeight);
+    });
+
+  // Store and measure audio levels
+  const [audioLevel, setAudioLevel] = useState(0);
+  const metering = useSharedValue(0);
 
   useEffect(() => {
     if (isRecording) {
-      waveHeight1.value = withRepeat(
-        withTiming(Math.random() * 40 + 20, { 
-          duration: 300,
-          easing: Easing.inOut(Easing.ease)
-        }),
-        -1,
-        true
-      );
-      waveHeight2.value = withRepeat(
-        withTiming(Math.random() * 50 + 25, { 
-          duration: 400,
-          easing: Easing.inOut(Easing.ease)
-        }),
-        -1,
-        true
-      );
-      waveHeight3.value = withRepeat(
-        withTiming(Math.random() * 45 + 30, { 
-          duration: 350,
-          easing: Easing.inOut(Easing.ease)
-        }),
-        -1,
-        true
-      );
-      waveHeight4.value = withRepeat(
-        withTiming(Math.random() * 55 + 20, { 
-          duration: 450,
-          easing: Easing.inOut(Easing.ease)
-        }),
-        -1,
-        true
-      );
-      waveHeight5.value = withRepeat(
-        withTiming(Math.random() * 35 + 15, { 
-          duration: 320,
-          easing: Easing.inOut(Easing.ease)
-        }),
-        -1,
-        true
-      );
+      // Simulate audio levels since expo-av doesn't fully support metering yet
+      const simulateAudioMeter = () => {
+        const interval = setInterval(() => {
+          // Generate random audio levels that look somewhat realistic
+          const randomLevel = Math.random() * 0.5 + 0.2; // Values between 0.2 and 0.7
+          setAudioLevel(randomLevel);
+          metering.value = randomLevel;
+
+          // Adjust wave heights based on simulated level
+          waveHeights.forEach((waveHeight, index) => {
+            const baseHeight = 15 + (index % 3) * 10;
+            const newHeight = baseHeight + randomLevel * 30;
+            waveHeight.value = withTiming(newHeight, {
+              duration: 100,
+              easing: Easing.out(Easing.ease),
+            });
+          });
+        }, 150);
+
+        // Return cleanup function
+        return () => {
+          clearInterval(interval);
+        };
+      };
+
+      const cleanupSimulation = simulateAudioMeter();
+      return () => {
+        if (cleanupSimulation) {
+          cleanupSimulation();
+        }
+      };
     } else {
-      waveHeight1.value = withTiming(20, { duration: 300 });
-      waveHeight2.value = withTiming(30, { duration: 300 });
-      waveHeight3.value = withTiming(25, { duration: 300 });
-      waveHeight4.value = withTiming(35, { duration: 300 });
-      waveHeight5.value = withTiming(15, { duration: 300 });
+      // Reset wave heights when not recording
+      waveHeights.forEach((waveHeight, index) => {
+        const baseHeight = 15 + (index % 3) * 10;
+        waveHeight.value = withTiming(baseHeight, { duration: 300 });
+      });
     }
   }, [isRecording]);
 
-  const wave1Style = useAnimatedStyle(() => ({
-    height: waveHeight1.value,
-  }));
-
-  const wave2Style = useAnimatedStyle(() => ({
-    height: waveHeight2.value,
-  }));
-
-  const wave3Style = useAnimatedStyle(() => ({
-    height: waveHeight3.value,
-  }));
-
-  const wave4Style = useAnimatedStyle(() => ({
-    height: waveHeight4.value,
-  }));
-
-  const wave5Style = useAnimatedStyle(() => ({
-    height: waveHeight5.value,
-  }));
+  // Create animated styles for each wave
+  const waveStyles = waveHeights.map((waveHeight) =>
+    useAnimatedStyle(() => ({
+      height: waveHeight.value,
+    }))
+  );
 
   return (
     <View style={styles.container}>
       <View style={styles.waveform}>
-        <Animated.View style={[styles.wave, wave1Style]} />
-        <Animated.View style={[styles.wave, wave2Style]} />
-        <Animated.View style={[styles.wave, wave3Style]} />
-        <Animated.View style={[styles.wave, wave4Style]} />
-        <Animated.View style={[styles.wave, wave5Style]} />
-        <Animated.View style={[styles.wave, wave4Style]} />
-        <Animated.View style={[styles.wave, wave3Style]} />
-        <Animated.View style={[styles.wave, wave2Style]} />
-        <Animated.View style={[styles.wave, wave1Style]} />
+        {waveStyles.map((style, index) => (
+          <Animated.View key={index} style={[styles.wave, style]} />
+        ))}
       </View>
     </View>
   );
